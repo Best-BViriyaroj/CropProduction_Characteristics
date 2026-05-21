@@ -18,3 +18,10 @@ Crops play a crucial role in sustaining global food security, yet they also cont
 * objective: Using Two-stage self-organising map with the multiple global datasets I will create the characteristics
 * literature review: Huggins et al. 2025, Jung et al. 2024
 * research questions: What are the characteristics of the crop production across the world?
+
+
+## Method Summary
+* Expert's Eliciation
+* Two-stage Self-Organising Maps
+* Correlation analysis
+* Hierarchichal Analysis
