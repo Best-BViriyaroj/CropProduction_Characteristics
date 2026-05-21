@@ -1,4 +1,4 @@
-# {{ Crop Production Biophysical System }}
+#Crop Production Biophysical System
 
 **Author:** {{ "Best"" Bhattarabhop Viriyaroj }}  
 **Contact:** {{ bhattarabhop.viriyaroj@aalto.fi }}
