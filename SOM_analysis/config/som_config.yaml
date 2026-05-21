@@ -1,0 +1,48 @@
+datasets:
+  SOC:           "../data_input/stack_dataset/soc_0-30cm_mean_5arcmin_stack.tif"
+  Phosphorus:    "../data_input/stack_dataset/OlsenP_5arcmin_stack_mgkg.tif"
+  SoilMoisture:  "../data_input/stack_dataset/SMrz_5arcmin_stack.tif"
+  Nitrogen:      "../data_input/stack_dataset/Ntot_0_30cm_mean_5arcmin_gkg_stack.tif"
+  AridityIndex:  "../data_input/stack_dataset/aridity_log_stack_1992-2020.tif"
+  Precipitation: "../data_input/stack_dataset/Precip_5arcmin_stack.tif"
+  GDD:           "../data_input/stack_dataset/GDD_stack.tif"
+  Evaporation:   "../data_input/stack_dataset/Eva_5arcmin_stack.tif"
+
+mask_path: "../data_input/mask/mask_10pct.tif"
+clip_extent: [-180, 180, -60, 90]
+
+years: [1992, 2020]
+periods:
+  - [1992, 1996]
+  - [1997, 2000]
+  - [2001, 2004]
+  - [2005, 2008]
+  - [2009, 2012]
+  - [2013, 2016]
+  - [2017, 2020]
+
+percentile_datasets: ["SOC", "Phosphorus", "SoilMoisture", "Nitrogen", "Precipitation", "GDD", "Evaporation"]
+
+output:
+  masked_dir:      "data/interim/masked"
+  avg_dir:         "data/interim/avg_4y"
+  norm_dir:        "data/interim/avg_4y_normalized"
+  cleaned_dir:     "data/interim/avg_4y_normalized/cleaned"
+  final_dir:       "data/interim/final"
+  models_dir:      "data/models"
+  metrics_dir:     "data/metrics"
+  qa_dir:          "images/qa"
+
+kmeans:
+  k_values: [5, 10, 20, 50, 100, 250, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]
+  seed: 77
+  hpc_dir: "data/metrics/kmeans/puhti_results"
+  hpc_pattern: "^results_k\\d+\\.rds$"
+
+som:
+  grid: {xdim: 18, ydim: 18, topo: "hexagonal"}
+  rlen: 300
+  alpha: [0.05, 0.01]
+  runs: 60
+  seed_base: 1234
+  scale_features: false

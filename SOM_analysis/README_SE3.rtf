@@ -1,0 +1,192 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2869
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;\f1\fnil\fcharset0 Menlo-Italic;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red255\green255\blue255;\red81\green156\blue233;
+}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c100000\c100000\c100000;\cssrgb\c38039\c68235\c93333;
+}
+\paperw11900\paperh16840\margl1440\margr1440\vieww21440\viewh14060\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs24 \cf2 \expnd0\expndtw0\kerning0
+SE3: Model Train, Validate, and Interpret\
+\
+Overview\
+This repository implements a FAIR, reproducible pipeline to:\
+\pard\pardeftab720\partightenfactor0
+\cf2 - Build a global cropland mask from LUIcube
+\f1\i _HANPPharv (minimum-yearly-coverage method)\
+- Mask/clip environmental stacks, aggregate into 7 four-year periods (1992\'962020)\
+- Normalize and master-mask the data\
+- Restructure to period-wise variable stacks and final data tables\
+- Run k-means elbow (local + auto-merge HPC results)\
+- Train Self-Organizing Maps (SOM) and evaluate metrics\
+- Export interpretable outputs (BMUs, codebooks)\
+\
+Project layout\
+- data_
+\f0\i0 input/\
+  - LUIcube
+\f1\i _HANPPharv/            per-crop, per-year 30" GeoTIFFs\
+  - mask/                          final mask outputs (mask_
+\f0\i0 10pct.tif)\
+  - stack
+\f1\i _dataset/                 environmental stacks\
+- SOM_
+\f0\i0 analysis/\
+  - config/                        som
+\f1\i _config.yaml (pipeline), figures_
+\f0\i0 config.yaml (SE4)\
+  - R/                             reusable functions (no hard-coded paths)\
+  - scripts/                       entry-point scripts (read YAML and run steps)\
+  - data/                          interim, models, metrics (created by scripts)\
+  - images/                        QA and figures\
+  - README
+\f1\i _SE3.md                  this file\
+\
+R vs scripts\
+- R/: Reusable, modular functions and helpers. No hard-coded paths; functions take arguments and return values.\
+- scripts/: Executable entry points that read config/som_
+\f0\i0 config.yaml, construct paths, call functions, and write outputs.\
+\
+Mask derivation (LUIcube
+\f1\i _HANPPharv \uc0\u8594  mask_
+\f0\i0 10pct.tif)\
+Inputs: ../data
+\f1\i _input/LUIcube_
+\f0\i0 HANPPharv (CL per-crop, per-year 30" GeoTIFFs)\
+\
+Method (minimum-yearly-coverage):\
+1) Yearly totals: For each year, sum all crop layers \uc0\u8594  LUIcube
+\f1\i _HANPPharv_
+\f0\i0 total
+\f1\i _y.tif (30").\
+2) Stable threshold: For each year, compute the 5th percentile of non-zero values; choose T = min of yearly 5% quantiles.\
+3) Binary masks (30"): For each year, classify per cell: 1 if total \uc0\u8805  T; NA otherwise.\
+4) Aggregate to 5': Area-weight each yearly 30" binary into a 5' fractional cropland coverage.\
+5) Minimum yearly fraction: Take per-cell min across years.\
+6) Final mask (5'): mask_
+\f0\i0 10pct = 1 where min
+\f1\i _yearly_
+\f0\i0 fraction \uc0\u8805  0.10; NA elsewhere.\
+\
+Reproduce:\
+- Rscript SOM
+\f1\i _analysis/scripts/build_
+\f0\i0 mask
+\f1\i _from_
+\f0\i0 LUIcube
+\f1\i _HANPPharv.R\
+- Outputs:\
+  - ../data_
+\f0\i0 input/mask/min
+\f1\i _yearly_
+\f0\i0 fraction
+\f1\i _5min.tif\
+  - ../data_
+\f0\i0 input/mask/mask
+\f1\i _10pct.tif\
+  - ../data_
+\f0\i0 input/mask/mask
+\f1\i _10pct_
+\f0\i0 sanity.png (optional)\
+\
+Configuration (edit SOM
+\f1\i _analysis/config/som_
+\f0\i0 config.yaml)\
+- datasets: paths to environmental stacks (relative to repo root or absolute)\
+- mask
+\f1\i _path: "../data_
+\f0\i0 input/mask/mask
+\f1\i _10pct.tif"\
+- clip_
+\f0\i0 extent: [-180, 180, -60, 90]\
+- periods: seven 4-year periods covering 1992\'962020\
+- percentile
+\f1\i _datasets: clamp all except AridityIndex\
+- kmeans: K up to 100000; auto-merge HPC results from data/metrics/kmeans/puhti_
+\f0\i0 results\
+- som: grid 18\'d718; rlen 300; alpha [0.05, 0.01]; runs=60; no extra scaling\
+\
+Run order\
+1) Build mask (run once)\
+- Rscript SOM
+\f1\i _analysis/scripts/build_
+\f0\i0 mask
+\f1\i _from_
+\f0\i0 LUIcube
+\f1\i _HANPPharv.R\
+\
+2) Preprocess to final data\
+- Rscript SOM_
+\f0\i0 analysis/scripts/step01
+\f1\i _mask_
+\f0\i0 clip.R\
+- Rscript SOM
+\f1\i _analysis/scripts/step02_
+\f0\i0 avg
+\f1\i _4y.R\
+- Rscript SOM_
+\f0\i0 analysis/scripts/step03
+\f1\i _normalize.R\
+- Rscript SOM_
+\f0\i0 analysis/scripts/step04
+\f1\i _master_
+\f0\i0 mask
+\f1\i _clean.R\
+- Rscript SOM_
+\f0\i0 analysis/scripts/step05
+\f1\i _restructure_
+\f0\i0 export.R\
+- Rscript SOM
+\f1\i _analysis/scripts/step06_
+\f0\i0 correlations.R\
+\
+3) K-means elbow + auto-merge HPC\
+- Rscript SOM
+\f1\i _analysis/scripts/step07_
+\f0\i0 kmeans
+\f1\i _elbow.R\
+- Optional: place .rds files (columns k,var_
+\f0\i0 expl) into SOM
+\f1\i _analysis/data/metrics/kmeans/puhti_
+\f0\i0 results and re-run to merge\
+\
+4) Train + evaluate SOM\
+- Rscript SOM
+\f1\i _analysis/scripts/step08_
+\f0\i0 som
+\f1\i _train_
+\f0\i0 full.R\
+- Rscript SOM
+\f1\i _analysis/scripts/step09_
+\f0\i0 som
+\f1\i _evaluate.R\
+- Rscript SOM_
+\f0\i0 analysis/scripts/step10
+\f1\i _som_
+\f0\i0 extract
+\f1\i _outputs.R\
+\
+5) Capture session info\
+- In R: capture.output(sessionInfo(), file = "SOM_
+\f0\i0 analysis/sessionInfo
+\f1\i _SE3.txt")\
+\
+Model outputs and \'93fit coefficients\'94\
+- Codebooks (fit coefficients): SOM_
+\f0\i0 analysis/data/models/exports/som
+\f1\i _codebooks.csv|rds\
+- BMU assignments: SOM_
+\f0\i0 analysis/data/models/exports/bmu
+\f1\i _assignments.csv|rds\
+- SOM metrics: SOM_
+\f0\i0 analysis/data/metrics/som
+\f1\i _performance_
+\f0\i0 full/ (per model) and combined CSV/RDS\
+\
+Provenance\
+- All steps and parameters are recorded in YAML and scripts\
+- Session info saved to SOM
+\f1\i _analysis/sessionInfo_
+\f0\i0 SE3.txt}

@@ -1,0 +1,45 @@
+paths:
+  final_data: "data/interim/final"
+  models_dir: "data/models"
+  metrics_dir: "data/metrics"
+
+inputs:
+  som2_selection_rds: "data/models/som2_selections/som2_selection.rds"
+  cell_to_archetype_rds: "data/models/som_files/cell_to_archetype_map.rds"
+  spatial_ref_rds: "data/models/som_files/spatial_reference_fromID.rds"
+  # produced by export_groups_k7.R
+  archetype_to_group_rds: "data/models/som_files/archetype_to_group_k7.rds"
+  cell_to_group_rds: "data/models/som_files/cell_to_group_k7.rds"
+  archetype_palette_csv: "images/figures/meta/archetype_palette_k7.csv"
+
+maps:
+  period: "2017-2020"               # set to "" to render all periods
+  projection: "+proj=robin +datum=WGS84"
+  smoothing: true
+  dpi: 450
+  size_in: [10, 6]
+
+dendrogram:
+  linkage: "complete"
+  stand_features: true
+  k: 7
+  dpi: 300
+  size_in: [8, 6]
+
+som_diag:
+  som_model_rds: "data/models/som_18x18_run01.rds"
+  variables: ["SOC","SoilMoisture","Precipitation"]
+  dpi: 300
+  size_in: [8, 6]
+
+elbow:
+  merged_rds: "data/metrics/kmeans/elbow_results_all.rds"
+  label_k: [500, 2000, 5000, 10000, 20000, 50000, 100000]
+
+sensitivity:
+  table_rds: "data/models/som2_files/sensitivity_df.rds"
+  dpi: 300
+  size_in: [8, 6]
+
+out_dir: "images/figures"
+meta_dir: "images/figures/meta"
