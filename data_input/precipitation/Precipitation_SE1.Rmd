@@ -1,0 +1,14 @@
+---
+title: "Precipitation_SE1"
+output: html_document
+date: "2026-05-21"
+---
+
+
+This is the document to show the data acquisition process for the precipitation dataset. We are using the dataset from MSWEP for the precipitation. Unfortunately, you cannot automate this process since you need permission to get the dataset (link: https://www.gloh2o.org)
+
+Reference: Wang, X., Alharbi, R. S., Baez-Villanueva, O. M., Miralles, D. G., Ma, J., Xu, S., McCabe, M. F., Pappenberger, F., van Dijk, A. I. J. M., McVicar, T. R., Karthikeyan, L., Fowler, H. J., Pan, M., Gebrechorkos, S. H., and Beck, H. E. (2026). MSWEP V3: Machine learning-powered global precipitation estimates at 0.1° hourly resolution (1979–present). arXiv preprint arXiv:2602.01436:, doi:10.48550/arXiv.2602.01436.
+
+You would need to request the dataset in the website to get the download details via email. The files are in Google Drive that is provided by the authors.
+
+You should be able to get the MONTHLY precipitation datasets in NC format for each year.

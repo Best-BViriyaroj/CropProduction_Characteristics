@@ -1,0 +1,56 @@
+---
+title: "SoilMoisture_SE2"
+output: html_document
+date: "2026-05-21"
+---
+
+Standard Element 2 refers to data processing. In this step we will harmonise the code to get the stack dataset ready to be used in the analysis process.
+
+These codes are for reading the nc files soil moisture rootzone from GLEAM
+
+Read the libraries and create directories.
+```{r}
+library(terra)
+library(stringr)
+library(fs)
+
+input_dir <- "SMrz" #assume that you have folder with this name
+output_dir <- "rasters/SMrz"
+dir_create(output_dir)
+
+nc_files <- dir_ls(input_dir, glob = "*.nc")
+
+years <- 1992:2020 #initiate the temporal scope
+annual_rasters <- list()
+
+r_ref <- rast(ncols = 4320, nrows = 2160, crs = "EPSG:4326") #final resolution for stack dataset
+```
+
+Read the files, resample the dataset and save the files.
+```{r}
+for (yr in years) {
+  year_pattern <- paste0("_", yr)
+  year_file <- str_subset(nc_files, year_pattern)
+  
+  if (length(year_file) == 1) {
+    
+    r_original <- rast(year_file) #unit is m3 of water per m3 of soil
+    r_resampled <- resample(r_original, r_ref, method = "bilinear")
+    output_path <- file.path(output_dir, paste0("SMrz_", yr, "_5arcmin.tif"))
+  
+    writeRaster(r_resampled, output_path, overwrite = TRUE)
+    message(paste("  ✓ Resampled and saved:", basename(output_path)))
+  } else if (length(year_file) == 0) {
+    message(paste("  ! File not found for year", yr))
+  } else {
+    message(paste("  ! Multiple files found for year", yr, "- skipping."))
+  }
+}
+message("\nProcessing complete.")
+
+#Stack the files. Run the function from functions.Rmd first
+smrz_stack <- function_raster_stack(in_directory = "rasters/SMrz")
+```
+
+
+

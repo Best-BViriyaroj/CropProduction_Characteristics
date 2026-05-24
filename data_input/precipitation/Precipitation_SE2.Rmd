@@ -1,0 +1,52 @@
+---
+title: "Precipitation_SE2"
+output: html_document
+date: "2026-05-21"
+---
+
+Standard Element 2 refers to data processing. In this step we will harmonise the code to get the stack dataset ready to be used in the analysis process.
+
+The first chunk of this code is written by Ashvath Kunadi (ORCID ID: 0000-0002-3098-1247). It is meant to read the nc files for precipitation dataset from MSWEP (Wang et al. 2025).
+```{r}
+#Call the necessary libraries
+library(ncdf4)
+library(lubridate)
+library(terra)
+library(sf)
+library(tmap)
+library(scico)
+
+#Edit your directory that contains the monthly precipitation dataset
+prdir <- "D:/MSWEP_monthly/Monthly/"
+pr_list <- list()
+for(j in 1:length(years)){
+  yr_fil <- list.files(prdir, pattern = paste0(years[j], '\\d{2}\\.nc'), full.names = TRUE)
+  for(i in 1:length(yr_fil)){
+    nc_name <- yr_fil[i]
+    ncin <- nc_open(nc_name)
+    time <- ncvar_get(ncin,"time")
+    nt <- dim(time)
+    lon <- ncvar_get(ncin,"lon")
+    nlon <- dim(lon)
+    lat <- ncvar_get(ncin,"lat")
+    nlat <- dim(lat)
+    mnth_rast <- ncvar_get(ncin, "precipitation")
+    nc_close(ncin)
+    if(i == 1){
+      yr_rast <- mnth_rast
+    }else{
+      yr_rast <- yr_rast+mnth_rast
+    }
+  }
+  pr_list[[j]] <- yr_rast
+  trial <- rast(vals = t(yr_rast), ncol=nlon, nrow=nlat, xmin= -179.95, xmax=179.95, ymin=-89.95, ymax=89.95)
+  writeRaster(trial, paste0(prdir, 'Precip_',years[j],'.tif'), overwrite=TRUE)
+}
+```
+
+#This chunk is to run the files and stack the files
+```{r}
+#Run this function first in functions.Rmd
+function_6_to_5arcmin_stack(in_directory = "Precipitation",resample_method = "bilinear")
+```
+

@@ -1,0 +1,38 @@
+---
+title: "OlsenP"
+output: html_document
+date: "2026-04-16"
+---
+
+This code combined the Standard Element 1 (Data acquisition) and Standard Element 2 (Data processing) for the soil plant available phosphorus dataset from Mcdowell et al. 2023.
+
+Reference: McDowell, R.W., Noble, A., Pletnyakov, P. et al. A Global Database of Soil Plant Available Phosphorus. Sci Data 10, 125 (2023). https://doi.org/10.1038/s41597-023-02022-4
+
+Since soil plant available phosphorus does not change much through out the year, we will use value from the averaged year for all the years from 1992 to 2020.
+
+First you need to download the OlsenP_5arcmin_mgkg.tif file from Figshare. This is the link: https://figshare.com/articles/dataset/Global_Available_Soil_Phosphorus_Database/14241854
+
+
+Call the library, get the file, duplicate to 29 layers
+```{r}
+library(terra)
+
+# Input single-layer raster
+OlsenP_single <- rast("OlsenP_5arcmin_mgkg.tif")
+
+# Duplicate to 29 layers (1992-2020)
+OlsenP_stack <- rast(replicate(29, OlsenP_single, simplify = FALSE))
+
+# Name layers y1992 ... y2020
+names(OlsenP_stack) <- paste0("y", 1992:2020)
+
+# Save stack
+writeRaster(
+  OlsenP_stack,
+  "OlsenP_5arcmin_stack_mgkg.tif",
+  overwrite = TRUE
+)
+
+OlsenP_stack
+plot(OlsenP_stack)
+```

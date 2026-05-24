@@ -1,0 +1,17 @@
+---
+title: "SoilMoisture_SE1"
+output: html_document
+date: "2026-05-21"
+---
+
+Typically, there are two options to calculate using soil moisture. Soil moisture and soil moisture root zone. In this research project we will use soil moisture root zone to calculate the characteristics since it impacts the crops more.
+
+In this document, I will show the data acquisition process for the soil moisture (root zone) dataset. We are using the dataset from GLEAMv4 for the soil moisture (root zone). Unfortunately, you cannot automate this process since you need permission to get the dataset (link: https://www.gleam.eu/#downloads)
+
+Reference: Miralles, D.G., Bonte, O., Koppa, A., Baez-Villanueva, O.M., Tronquo, E., Zhong, F., Beck, H.E., Hulsman, P., Dorigo, W.A., Verhoest, N.E.C., Haghdoost, S.,  GLEAM4: global land evaporation and soil moisture dataset at 0.1° resolution from 1980 to near present, Scientific Data, 12, 416, 2025
+
+You would need to request the dataset in the website to get the download details via email. You will need to use SFTP (Secure File Transfer Protocol) to download. You can use FileZilla (for mac) or WinSCP (for windows), for example, to download the file.
+
+I cannot share the server details for downloading here since you should ask for permission yourself and reference the author.
+
+You should be able to get the datasets in NC format for each year.
