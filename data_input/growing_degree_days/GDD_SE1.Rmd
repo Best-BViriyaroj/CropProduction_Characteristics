@@ -1,0 +1,17 @@
+---
+title: "GDD_SE1"
+output: html_document
+date: "2026-05-21"
+---
+
+This document is to show how to get all the required datasets to calculate and harmonise the growing degree days dataset.
+
+Growing degree days is designed to capture the temperature influence towards the crops. It counts the number of degree (celsius for example) that falls within crop's temperature growth range for each day. What we currently working on is the number of growing degree days in a year for each crop, i.e., how many degrees that falls within growth range of each crop
+
+Thus, we need three datasets in order to calculate the growing degree days, first is the temperature dataset. Second, is the range of potential growth for each crop where each crop has different growth range. We are analysing for 22 crop classes from LUIcube (Matej et al. 2025) where some classes consist of multiple crops (crop groups). Third, is the mask showing where are the crops being grown and how much are being grown. In the third dataset, we will get the datasets from Matej et al. 2025 which provides the harvested net primary production dataset for each of 22 crop classes. This dataset is needed to create a weighted mask so that we can calculate the amount of GDD based on how much crops are being grown.
+
+We will get the temperature dataset from MSWX (Beck et al. 2022) which would align with precipitation datasets. For the range of growing degree days we will use the range provided by Peredes et al. 2025 and compared with the crop classes from Matej et al. 2025.
+
+For the temperature dataset from MSWX, we will download the dataset from this link: https://www.gloh2o.org/mswx/ You should be able to get DAILY temperature dataset from there.
+
+The formular that we are using is the method 2 from Zhou & Wang 2028, which means that we need the daily temperature maximum and temperature minimum datasets.

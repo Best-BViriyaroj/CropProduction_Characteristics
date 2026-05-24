@@ -1,0 +1,30 @@
+---
+title: "Aridity_Index_SE1"
+output: html_document
+date: "2026-05-21"
+---
+
+This document is to acquire the dataset for the aridity index. In this project, we will create our own aridity index dataset from the equation aridity index = precipitation / potential evaporation (AI = P/PET).
+
+We will use the precipitation dataset from MSWEP and potential evaporation from GLEAM. Unfortunately, for both datasets you would need to ask for access to get the data. I have put here the information on how to get the datasets.
+
+-------------------------------------------------------------
+Precipitation MSWEP download site (link: https://www.gloh2o.org)
+
+Reference: Wang, X., Alharbi, R. S., Baez-Villanueva, O. M., Miralles, D. G., Ma, J., Xu, S., McCabe, M. F., Pappenberger, F., van Dijk, A. I. J. M., McVicar, T. R., Karthikeyan, L., Fowler, H. J., Pan, M., Gebrechorkos, S. H., and Beck, H. E. (2026). MSWEP V3: Machine learning-powered global precipitation estimates at 0.1° hourly resolution (1979–present). arXiv preprint arXiv:2602.01436:, doi:10.48550/arXiv.2602.01436.
+
+You would need to request the dataset in the website to get the download details via email. The files are in Google Drive that is provided by the authors.
+
+You should be able to get the MONTHLY precipitation datasets in NC format for each year.
+
+-------------------------------------------------------------
+Potential evaporation GLEAM (link: https://www.gleam.eu/#downloads)
+
+Reference: Miralles, D.G., Bonte, O., Koppa, A., Baez-Villanueva, O.M., Tronquo, E., Zhong, F., Beck, H.E., Hulsman, P., Dorigo, W.A., Verhoest, N.E.C., Haghdoost, S.,  GLEAM4: global land evaporation and soil moisture dataset at 0.1° resolution from 1980 to near present, Scientific Data, 12, 416, 2025
+
+You would need to request the dataset in the website to get the download details via email. You will need to use SFTP (Secure File Transfer Protocol) to download. You can use FileZilla (for mac) or WinSCP (for windows), for example, to download the file.
+
+I cannot share the server details for downloading here since you should ask for permission yourself and reference the author.
+
+You should be able to get the potential evaporation in NC format for each year.
+

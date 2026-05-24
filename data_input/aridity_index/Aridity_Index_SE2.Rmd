@@ -1,0 +1,196 @@
+---
+title: "Aridity_Index_SE2"
+output: html_document
+date: "2026-05-21"
+---
+
+Standard Element 2 refers to data processing. In this step we will harmonise the code to get the stack dataset ready to be used in the analysis process.
+
+These code chunks are written by Ashvath Kunadi (ORCID ID: 0000-0002-3098-1247). It is meant to read the nc files for precipitation dataset from MSWEP (Wang et al. 2025) and potential evaporation from GLEAM (Miralles et al. 2025)
+
+This chunk is to read the monthly precipitation data. You would need to run this code chunk first.
+```{r}
+prdir <- "D:/MSWEP_monthly/Monthly/"
+pr_list <- list()
+for(j in 1:length(years)){
+  yr_fil <- list.files(prdir, pattern = paste0(years[j], '\\d{2}\\.nc'), full.names = TRUE)
+  for(i in 1:length(yr_fil)){
+    nc_name <- yr_fil[i]
+    ncin <- nc_open(nc_name)
+    time <- ncvar_get(ncin,"time")
+    nt <- dim(time)
+    lon <- ncvar_get(ncin,"lon")
+    nlon <- dim(lon)
+    lat <- ncvar_get(ncin,"lat")
+    nlat <- dim(lat)
+    mnth_rast <- ncvar_get(ncin, "precipitation")
+    nc_close(ncin)
+    if(i == 1){
+      yr_rast <- mnth_rast
+    }else{
+      yr_rast <- yr_rast+mnth_rast
+    }
+  }
+  pr_list[[j]] <- yr_rast
+  # trial <- rast(vals = t(yr_rast), ncol=nlon, nrow=nlat, xmin= -179.95, xmax=179.95, ymin=-89.95, ymax=89.95)
+  # writeRaster(trial, paste0(prdir, 'Precip_',years[j],'.tif'), overwrite=TRUE)
+}
+```
+
+
+This second chunk is to read the potential evaporation dataset and then calculate the aridity index from the formula AI=P/PET
+```{r}
+prdir <- "D:/GLEAM_yearly/Ep/"
+for(j in 1:length(years)){
+  nc_name <- paste0(prdir, "Ep_",years[j],"_GLEAM_v4.2a_YR.nc")
+  ncin <- nc_open(nc_name)
+  time <- ncvar_get(ncin,"time")
+  nt <- dim(time)
+  lon <- ncvar_get(ncin,"lon")
+  nlon <- dim(lon)
+  lat <- ncvar_get(ncin,"lat")
+  nlat <- dim(lat)
+  yr_rast <- ncvar_get(ncin, "Ep")
+  nc_close(ncin)
+  
+  ar_rast <- pr_list[[j]]/yr_rast #Calculation of aridity index. Needs pr_list from precipitation first
+  trial <- rast(vals = t(ar_rast), ncol=nlon, nrow=nlat, xmin= -179.95, xmax=179.95, ymin=-89.95, ymax=89.95)
+  writeRaster(trial, paste0(prdir, 'Ari_',years[j],'.tif'), overwrite=TRUE)
+}
+```
+
+
+Chunks after this is written by me ("Best" Bhattarabhop Viriyaroj)
+
+First we read the file and convert it into 5 arcminute
+```{r}
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+library(terra)
+library(tools)
+
+# 1. Define the target 5-arcminute reference raster
+# This creates an empty raster with the desired dimensions and projection.
+r_ref <- rast(ncol = 4320, nrow = 2160, crs = "EPSG:4326")
+
+# 2. Set paths for input and output files
+# Assumes your aridity files are in a directory named "Aridity"
+# and you want to save the new files to "Aridity_5arcmin".
+in_dir <- "Aridity"
+out_dir <- "Aridity_5arcmin"
+
+# Create the output directory if it doesn't exist
+if (!dir.exists(out_dir)) {
+  dir.create(out_dir)
+}
+
+# Get a list of all aridity files to process
+aridity_files <- list.files(
+  path = in_dir,
+  pattern = "\\.tif$",  # Matches files like Ari_1992.tif
+  full.names = TRUE
+)
+
+# 3. Loop through, resample, and save each raster
+for (file_path in aridity_files) {
+  # Read the original 6-arcminute raster
+  r_original <- rast(file_path)
+  
+  # Resample the raster to match the 5-arcminute reference raster
+  # 'bilinear' is a good method for continuous data like an aridity index.
+  r_resampled <- resample(r_original, r_ref, method = "bilinear")
+  
+  # Define the output filename and path
+  base_name <- file_path_sans_ext(basename(file_path))
+  
+  # Create the new filename with the "_5arcmin" suffix
+  out_filename <- paste0(base_name, "_5arcmin.tif")
+  out_path <- file.path(out_dir, out_filename)
+  
+  # Save the resampled raster
+  writeRaster(r_resampled, out_path, overwrite = TRUE)
+  
+  # Print a message to track progress
+  message("Resampled and saved: ", out_filename)
+}
+
+message("Resampling complete for all files.")
+```
+
+Since the dataset is extremely skewed and for aridity index, the lower values of the datasets is to be focused more since it shows how arid certain areas are. We are less interested in non-arid area since they perform similarly (refer to Zomer et al. 2022)
+
+Thus, we decided transform the dataset using logarithm.
+```{r}
+in_dir <- "Aridity_5arcmin"
+out_dir <- "Aridity_5arcmin/log_transform"
+
+# Create the output directory if it doesn't exist
+if (!dir.exists(out_dir)) {
+  dir.create(out_dir)
+}
+
+# 2. Get a list of all 5-arcminute aridity files
+files_to_transform <- list.files(
+  path = in_dir,
+  pattern = "_5arcmin\\.tif$",
+  full.names = TRUE
+)
+
+# 3. Loop through, transform, and save each raster
+for (file_path in files_to_transform) {
+  # Read the original 5-arcminute raster
+  r_original <- rast(file_path)
+  
+  # Apply the log transformation
+  # Note: log() of values <= 0 will produce -Inf or NaN.
+  # This is usually fine, as they will be treated as NA by default.
+  r_log <- log(r_original)
+  
+  base_name <- file_path_sans_ext(basename(file_path))
+  
+  # Define the output path (same filename, new directory)
+  out_filename <- paste0(base_name, "_log.tif")
+  out_path <- file.path(out_dir, out_filename)
+  
+  # Save the log-transformed raster
+  writeRaster(r_log, out_path, overwrite = TRUE)
+  
+  message("Log-transformed and saved: ", out_filename)
+}
+
+message("Log transformation complete for all files.")
+```
+
+We then stack the files
+```{r}
+library(terra)
+
+# 1. Set the directory containing the log-transformed files
+in_dir <- "Aridity_5arcmin/log_transform"
+
+# 2. Get a sorted list of the files to stack
+files_to_stack <- list.files(
+  path = in_dir,
+  pattern = "_log\\.tif$",
+  full.names = TRUE
+) |> sort()
+
+# 3. Create the SpatRaster stack
+aridity_log_stack <- rast(files_to_stack)
+
+# 4. Create and assign the new layer names
+new_names <- paste0("y", 1992:2020)
+names(aridity_log_stack) <- new_names
+
+# 5. Define the output path and save the raster stack
+out_path <- file.path("Aridity_5arcmin", "aridity_log_stack_1992-2020.tif")
+writeRaster(aridity_log_stack, out_path, overwrite = TRUE)
+
+# Print a confirmation message
+message("Raster stack saved to: ", out_path)
+
+# Display the new stack's information
+aridity_log_stack
+plot(aridity_log_stack)
+```
+
+

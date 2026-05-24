@@ -1,0 +1,146 @@
+---
+title: "Nitrogen_SE1_SE2"
+output: html_document
+date: "2026-05-21"
+---
+
+---
+title: "SOC_SE1_SE2"
+output: html_document
+date: "2026-05-21"
+---
+
+This code combined the Standard Element 1 (Data acquisition) and Standard Element 2 (Data processing) for the soil organic carbon (SOC) dataset from SoilGrids (Poggio et al. 2020)
+
+Reference: Poggio, L., de Sousa, L. M., Batjes, N. H., Heuvelink, G. B. M., Kempen, B., Ribeiro, E., and Rossiter, D.: SoilGrids 2.0: producing soil information for the globe with quantified spatial uncertainty, SOIL, 7, 217–240, https://doi.org/10.5194/soil-7-217-2021, 2021.
+
+Since total nitrogen does not change much through out the year, we will use value from the averaged year for all the years from 1992 to 2020.
+
+Establish the libraries, connections, and directories. We want layers from 0-30 cm (g/kg)
+```{r}
+# Fast approach using gdal_translate for 5 arc-minute resolution
+library(gdalUtilities)
+library(terra)
+
+# 1. Force GDAL to retry if the server glitches (prevents Error 4/timeout issues)
+Sys.setenv(GDAL_HTTP_MAX_RETRY = "10")
+Sys.setenv(GDAL_HTTP_RETRY_DELAY = "3")
+
+# --- Define remote sources and local destinations ---
+voi <- 'nitrogen'
+layers <- c('nitrogen_0-5cm_mean', 'nitrogen_5-15cm_mean', 'nitrogen_15-30cm_mean')
+urls <- paste0("/vsicurl/https://files.isric.org/soilgrids/latest/data/", voi, '/', layers, '.vrt')
+
+# Create the directory if it doesn't exist
+out_dir <- "../../../../Research/dataset/SoilGrids/nitrogen/"
+dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+local_files <- paste0(out_dir, layers, "_5arcmin.tif")
+```
+
+Download the dataset
+```{r}
+# 2. Download directly at 5 arc-minute resolution (4320 x 2160 pixels globally)
+for (i in 1:length(urls)) {
+  if (file.exists(local_files[i])) {
+    file.remove(local_files[i])
+  }
+  
+  # Run gdal_translate with outsize to instantly aggregate to 5 arc-minutes
+  gdal_translate(
+    src_dataset = urls[i],
+    dst_dataset = local_files[i],
+    of = "GTiff",
+    outsize = c(4320, 2160), 
+    r = "average",            # Ensures we average the nitrogen values rather than picking random pixels
+    co = c("COMPRESS=DEFLATE", "TILED=YES")
+  )
+}
+```
+
+
+Since the datasets have three layers, we use weighted average to calculate SOC for 30cm depths
+```{r}
+# 3. Load local 5-arcmin rasters and compute the weighted average
+nitrogen5 <- rast(local_files[1])
+nitrogen15 <- rast(local_files[2])
+nitrogen30 <- rast(local_files[3])
+
+# Vectorized calculation
+nitrogen0_30 <- (((5/30) * nitrogen5 + (10/30) * nitrogen15 + (15/30) * nitrogen30)) / 10 # g/kg
+```
+
+Save the files
+```{r}
+# 4. Write the final computed 5-arcmin raster
+writeRaster(
+  nitrogen0_30,
+  paste0(out_dir, "nitrogen_0-30cm_mean_5arcmin.tif"),
+  overwrite = TRUE,
+  wopt = list(
+    filetype = "GTiff",
+    gdal = c("COMPRESS=DEFLATE", "TILED=YES")
+  )
+)
+```
+
+Change the projection of the files into the final stack resolution
+```{r}
+# 5. Create raster reference and check out the raster files
+r_ref <- rast(ncol=4320, nrows = 2160, crs   = "EPSG:4326")
+
+out_dir <- "../../../../Research/dataset/SoilGrids/nitrogen/"
+
+files_to_project <- list.files(out_dir, pattern = "_5arcmin\\.tif$", full.names = TRUE)
+
+for (file in files_to_project) {
+  
+  # Load the raster
+  current_rast <- rast(file)
+  names(current_rast) <- tools::file_path_sans_ext(basename(file)) #To fix the name of the raster to align
+  
+  message("Projecting: ", basename(file))
+  
+  # Create a temporary filename
+  temp_file <- paste0(file, ".tmp")
+  
+  # Project to the temporary file
+  project(
+    current_rast, 
+    r_ref, 
+    method = "bilinear", 
+    filename = temp_file,
+    overwrite = TRUE,
+    wopt = list(
+      filetype = "GTiff",
+      gdal = c("COMPRESS=DEFLATE", "TILED=YES")
+    )
+  )
+  
+  # Replace the original file with the projected version
+  file.remove(file)
+  file.rename(temp_file, file)
+}
+
+message("All files successfully projected and replaced!")
+```
+
+Duplicating the layers into 29 layers from 1992 to 2020
+```{r}
+library(terra)
+
+# Input single-layer raster
+nitrogen_single <- rast("../../../../Research/dataset/SoilGrids/nitrogen/nitrogen_0-30cm_mean_5arcmin.tif")
+
+# Duplicate to 29 layers (1992-2020)
+nitrogen_stack <- rast(replicate(29, nitrogen_single, simplify = FALSE))
+
+# Name layers y1992 ... y2020
+names(nitrogen_stack) <- paste0("y", 1992:2020)
+
+# Save stack
+writeRaster(
+  nitrogen_stack,
+  "../../../../Research/dataset/SoilGrids/nitrogen/nitrogen_0-30cm_mean_5arcmin_stack.tif",
+  overwrite = TRUE
+)
+```

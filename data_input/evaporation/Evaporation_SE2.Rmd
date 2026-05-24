@@ -1,0 +1,72 @@
+---
+title: "Evaporation_SE2"
+output: html_document
+date: "2026-03-06"
+---
+
+The first chunk of this code is written by Ashvath Kunadi (ORCID ID: 0000-0002-3098-1247). It is meant to read the nc files for evaporation dataset from GLEAMv4 (Miralles et al. 2025).
+
+```{r}
+#Call the necessary libraries
+library(ncdf4)
+library(lubridate)
+library(terra)
+library(sf)
+library(tmap)
+library(scico)
+
+#Edit your directory that contains the evaporation dataset
+prdir <- "D:/GLEAM_yearly/E/"
+years <- 1992:2020
+library(ncdf4)
+for(j in 1:length(years)){
+  nc_name <- paste0(prdir, "E_",years[j],"_GLEAM_v4.2a_YR.nc")
+  ncin <- nc_open(nc_name)
+  time <- ncvar_get(ncin,"time")
+  nt <- dim(time)
+  lon <- ncvar_get(ncin,"lon")
+  nlon <- dim(lon)
+  lat <- ncvar_get(ncin,"lat")
+  nlat <- dim(lat)
+  yr_rast <- ncvar_get(ncin, "E")
+  nc_close(ncin)
+  trial <- rast(vals = t(yr_rast), ncol=nlon, nrow=nlat, xmin= -179.95, xmax=179.95, ymin=-89.95, ymax=89.95)
+  writeRaster(trial, paste0(prdir, 'Eva_',years[j],'.tif'), overwrite=TRUE)
+}
+```
+
+
+The rest of the code is for reading evaporation files from Ashvath Kunadi. This code is written by "Best" Bhattarabhop Viriyaroj (main author)
+
+Firt, set Lbirary and working directory
+```{r}
+library(terra)
+
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+```
+
+Main code
+```{r}
+library(terra)
+# 1. Define the target 5-arcminute reference raster
+# This creates an empty raster with the desired dimensions and projection.
+r_ref <- rast(ncol = 4320, nrow = 2160, crs = "EPSG:4326")
+
+# 2. Set paths for input and output files
+in_dir <- "Evaporation/"
+out_dir <- "Evaporation/5arcmin"
+
+ if (!dir.exists(out_dir)){
+   dir.create(out_dir)
+ }
+
+evaporation_files <- list.files(
+  path = in_dir,
+  pattern = ".tif$",
+  full.names = TRUE
+)
+evaporation_files
+
+#Run this function first in functions.Rmd
+function_6_to_5arcmin_stack(in_directory = "Evaporation", resample_method = "bilinear")
+```

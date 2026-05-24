@@ -1,0 +1,264 @@
+---
+title: "GDD_SE2"
+output: html_document
+date: "2026-05-22"
+---
+
+This document shows how we can get the calculate the growing degree days dataset and harmonise it into 5 arcminute from 1992 to 2020
+
+Call the necessary libraries and set the paths
+```{r}
+library(terra)
+library(lubridate)
+library(dplyr)
+library(tidyr)
+library(sf)
+library(readxl)
+library(terra)
+library(dplyr)
+library(readr)
+
+#Call the paths and set working directory
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
+# Paths (adjust to yours)
+path_tmax_5 <- "/Volumes/MainEx/BestMemory/Research/dataset/MSWX/MSWX_daily/rasterfiles/tmax/5arcmin/"
+path_tmin_5 <- "/Volumes/MainEx/BestMemory/Research/dataset/MSWX/MSWX_daily/rasterfiles/tmin/5arcmin/"
+path_cropmask <- "CropMask/5arcmin/"
+path_gdd <- "GDD_rasterfiles/"  # Output path (adjust if different)
+```
+
+Call the necessary functions
+```{r}
+# Function to extract masked values as data.frame (only masked cells, columns per day)
+myFun_toVector <- function(rastIn, mask) {
+  mask1 <- mask[[1]]
+  cells <- which(values(mask1) == 1)
+  if (length(cells) == 0) return(data.frame())
+  vals <- terra::extract(rastIn, cells)  # Returns data.frame with ID + layer cols
+  vals <- vals[, -1, drop = FALSE]       # Drop ID column
+  return(vals)
+}
+
+# Function to compute annual GDD from masked tmax/tmin data.frames
+compute_gdd_df <- function(tmax_df, tmin_df, Tbase, Tcutoff) {
+  # Vectorized per cell/day: cap tx, floor tn, avg, subtract base, max(0), sum over days
+  tx_cap <- pmin(tmax_df, Tcutoff)
+  tn_cap <- pmax(tmin_df, Tbase)
+  tavg <- (tx_cap + tn_cap) / 2
+  gdd_daily <- pmax(tavg - Tbase, 0)
+  gdd_annual <- rowSums(gdd_daily, na.rm = TRUE)  # Sum over days per cell
+  return(gdd_annual)
+}
+```
+
+First we need to calculate the fraction of HANPPharv first in order to do weighted average.
+```{r}
+library(terra)
+library(stringr)
+
+# Define paths
+harvest_dir <- "../LUIcube_BOKU/HANPPharv/5arcminute"
+yearly_sum_dir <- file.path(harvest_dir, "yearly_sum")
+fraction_out_dir <- "CropFraction/"
+
+# Create output directory if it doesn't exist
+if (!dir.exists(fraction_out_dir)) {
+  dir.create(fraction_out_dir, recursive = TRUE)
+}
+
+# Get list of all individual crop harvest files
+all_harvest_files <- list.files(
+  path = harvest_dir,
+  pattern = "\\.tif$",
+  full.names = TRUE,
+  recursive = FALSE # Only files in the main directory
+)
+
+# Filter out fodder crops and any files from subdirectories
+all_harvest_files <- all_harvest_files[!grepl("CL-FODD", all_harvest_files)]
+all_harvest_files <- all_harvest_files[!grepl("yearly_sum", all_harvest_files)]
+
+
+# Group files by year
+years <- str_extract(basename(all_harvest_files), "^\\d{4}")
+files_by_year <- split(all_harvest_files, years)
+
+# Process each year
+for (yr in names(files_by_year)) {
+  message("Processing year: ", yr)
+  
+  # Load the total harvest raster for the year
+  total_harvest_file <- file.path(yearly_sum_dir, paste0("HANPPharv_tC_", yr, "_5arcminute.tif"))
+  if (!file.exists(total_harvest_file)) {
+    warning("Skipping year ", yr, ": yearly sum file not found.")
+    next
+  }
+  total_harvest <- rast(total_harvest_file)
+  
+  # To avoid division by zero, set cells with zero total harvest to NA
+  # This ensures that fractions are only calculated where there is harvest
+  total_harvest[total_harvest == 0] <- NA
+  
+  # Get the list of crop files for the current year
+  crop_files_yr <- files_by_year[[yr]]
+  
+  # Process each crop file for the year
+  for (crop_file in crop_files_yr) {
+    crop_name_match <- str_match(basename(crop_file), "_tC_CL-([A-Z0-9]+)_")
+    if (is.na(crop_name_match[1,2])) {
+        next
+    }
+    crop_code <- crop_name_match[1,2]
+    
+    message("  Calculating fraction for: ", crop_code)
+    
+    # Define output file path
+    out_file <- file.path(fraction_out_dir, paste0("fraction_", crop_code, "_", yr, ".tif"))
+    
+    if (file.exists(out_file)) {
+        message("    - SKIPPED (output file already exists)")
+        next
+    }
+
+    # Load individual crop harvest raster
+    crop_harvest <- rast(crop_file)
+    
+    # Calculate fraction
+    crop_fraction <- crop_harvest / total_harvest
+    
+    # Write the fraction raster to the output directory
+    writeRaster(crop_fraction, out_file, overwrite = TRUE, datatype = "FLT4S")
+    message("    - Saved: ", out_file)
+  }
+}
+
+message("\nCrop fraction calculation complete.")
+```
+
+
+Main loop over crops and years
+
+There is a main limitation here. From the file LUIcube_cropBaseCutoffTemperature_v2.xlsx, you can see the calculation for the growth range for each crop class. However, based on values from Peredes et al. 2025 not all of the crops that appeared in the crop class have growing degree days range. This means that the growing degree range has to be averaged for those crop classes that have multiple crops. A better practice would be to do a weighted average, however, some of the crop groups have less than half of the available information. Thus, we will use only normal average. Check out the excel file if you want to see the process.
+
+```{r}
+# --- Main Loop ---
+
+# Read crop parameters
+crops_tbl <- read_excel("LUIcube_cropBaseCutoffTemperature_v2.xlsx")
+
+# Loop over each crop
+for (crop_idx in seq_len(nrow(crops_tbl))) {
+  crop_name <- crops_tbl$crop_code[crop_idx]
+  Tbase <- crops_tbl$Tbase[crop_idx]
+  Tcutoff <- crops_tbl$Tcutoff[crop_idx]
+  
+  message("\n\n======= PROCESSING CROP: ", crop_name, " (Tbase=", Tbase, ", Tcutoff=", Tcutoff, ") =======")
+  
+  # Loop over years
+  for (yr in 1992:2020) {
+    out_file <- file.path(path_gdd, paste0("GDD_weighted_", crop_name, "_", yr, ".tif"))
+    
+    if (file.exists(out_file)) {
+      message("  Year ", yr, " - SKIPPED (output file already exists)")
+      next
+    }
+    
+    message("  Year ", yr, "...")
+    
+    # Load tmax and tmin rasters
+    tmax_file <- file.path(path_tmax_5, paste0("tmax_", yr, ".tif"))
+    tmin_file <- file.path(path_tmin_5, paste0("tmin_", yr, ".tif"))
+    if (!file.exists(tmax_file) || !file.exists(tmin_file)) {
+      warning("Skipping ", yr, ": tmax/tmin files missing")
+      next
+    }
+    tmax <- rast(tmax_file)
+    tmin <- rast(tmin_file)
+    
+    # Find mask file (used to define which cells to process)
+    mask_file <- list.files(path_cropmask, 
+                            pattern = paste0("^", yr, ".*", crop_name, ".*_mask\\.tif$"), 
+                            full.names = TRUE)[1]
+    if (is.na(mask_file)) {
+      warning("  Skipping ", yr, ": mask missing for ", crop_name)
+      next
+    }
+    mask <- rast(mask_file)
+    
+    # MODIFIED: Find and load the corresponding crop fraction file
+    fraction_file <- file.path(path_cropfraction, paste0("fraction_", crop_name, "_", yr, ".tif"))
+    if (!file.exists(fraction_file)) {
+        warning("  Skipping ", yr, ": fraction file missing for ", crop_name)
+        next
+    }
+    crop_fraction <- rast(fraction_file)
+
+    # Extract data for masked cells
+    tmax_df <- myFun_toVector(tmax, mask)
+    tmin_df <- myFun_toVector(tmin, mask)
+    # MODIFIED: Extract fraction values for the same masked cells
+    crop_fraction_df <- myFun_toVector(crop_fraction, mask)
+
+    if (nrow(tmax_df) == 0) {
+      warning("  Skipping ", yr, ": no masked cells")
+      next
+    }
+    
+    # MODIFIED: Compute weighted annual GDD per cell
+    gdd_vals <- compute_gdd_df(tmax_df, tmin_df, crop_fraction_df, Tbase, Tcutoff)
+    
+    # Project back to raster
+    gdd_raster <- mask
+    gdd_raster[] <- NA
+    cells <- which(values(mask) == 1)
+    gdd_raster[cells] <- gdd_vals
+    
+    # Write output
+    writeRaster(gdd_raster, out_file, overwrite = TRUE, datatype = "FLT4S")
+    message("    ✓ Saved: ", out_file)
+    
+    # Clean up
+    rm(tmax, tmin, mask, crop_fraction, tmax_df, tmin_df, crop_fraction_df, gdd_vals, gdd_raster)
+    gc()
+  }
+}
+
+message("\n\n======= ALL WEIGHTED GDD PROCESSING COMPLETE =======\n")
+```
+
+Stack the file into yearly sum and stack
+```{r}
+library(terra)
+
+in_dir <- "GDD_rasterfiles"
+out_dir <- file.path(in_dir, "yearly_sum")
+dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+
+# Files like: GDD_banana_1992.tif, GDD_barley_1992.tif, ...
+all_files <- list.files(
+  path = in_dir,
+  pattern = "^GDD_.*_(19[0-9]{2}|20[0-9]{2})\\.tif$",
+  full.names = TRUE
+)
+
+# Extract year from filename
+years <- as.integer(sub(".*_(19[0-9]{2}|20[0-9]{2})\\.tif$", "\\1", basename(all_files)))
+year_levels <- sort(unique(years))
+
+out_files <- lapply(year_levels, function(yr) {
+  f_yr <- all_files[years == yr]
+  r_yr <- rast(f_yr)                    # multilayer (all crops for that year)
+  r_sum <- app(r_yr, sum, na.rm = TRUE) # one layer: sum across crops
+  names(r_sum) <- paste0("y", yr)
+  
+  out_file <- file.path(out_dir, paste0("GDD_", yr, ".tif"))
+  writeRaster(r_sum, out_file, overwrite = TRUE)
+  out_file
+})
+
+unlist(out_files)
+
+#Then stack the files
+r_gdd_stack <- function_raster_stack(in_directory = "GDD_rasterfiles/yearly_sum")
+```
