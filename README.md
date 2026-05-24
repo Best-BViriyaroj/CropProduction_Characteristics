@@ -1,37 +1,52 @@
-## Global Crop Production Physical System
+# Global Crop Production Biophysical System
 
-**Author:** {{ "Best"" Bhattarabhop Viriyaroj }}  
-**Contact:** {{ bhattarabhop.viriyaroj@aalto.fi }}
-**Organization:** {{ Aalto University }}
+**Author:** Bhattarabhop "Best" Viriyaroj  
+**Contact:** bhattarabhop.viriyaroj@aalto.fi  
+**Organization:** Aalto University
+
+## Table of Contents
+- [How to navigate the repository](#how-to-navigate-the-repository)
+- [Abstract](#abstract)
+- [Project Overview](#project-overview)
+- [Getting Started](#getting-started)
+- [Method Summary](#method-summary)
+- [Input datasets](#input-datasets)
+- [References](#references)
 
 ## How to navigate the repository
-* Below this section is the general details of the research
-* Standard Element 1 (SE1) or data acquisition and Standard Element 2 (SE2) or data process can be found in the 'data_input' directory
-* Standard Element 3 (SE3) or data analysis and Standard Element 4 (SE4) or data visualisation can be found in the 'SOM_analysis' directory
-* There are readme files in those folders. Please read them before using the script
-* Please run the functions.Rmd before running the scripts
-* You can look at the results from the 'final_figures' directory
+- General research details are provided below.
+- `data_input`: SE1 (Standard Element 1 - data acquisition); SE2 (Standard Element 2 - data processing)
+- `SOM_analysis`: SE3 (data analysis); SE4 (data visualisation)
+- Please read the README files in those folders for further instructions.
+- Run `functions.Rmd` before any other scripts.
+- You can view results in the `final_figures` directory.
 
 ## Abstract
-Crops play a crucial role in sustaining global food security, yet they also contribute to significant environmental degradation. Despite their significance, global studies often fail to account for the diverse variables impacting crop production within human and natural systems. In this study, we utilise a novel method—Two-Stage Self-Organising Maps—to systematically analyse key global datasets on crop production inputs provided by experts. Our analysis incorporates interdisciplinary datasets covering diverse sub-systems, including soil indicators, water-related metrics, and socio-economic variables. This approach will enable us to develop the first comprehensive global mapping of crop production system typologies at 5 arcminute resolutions for the period 1993 to 2020. The resulting typologies will be categorised into major groupings, highlighting the similarities and differences in crop production systems worldwide. We will further visualise the evolution of these characteristics and groupings across multiple timesteps, capturing the dynamic progression of global crop production systems. By establishing these typologies, we are aiming to facilitate communication pathways among experts to share best practices internationally, while also providing foundational insights for advancing research in crop and food systems analysis.
+Crops play a crucial role in sustaining global food security, yet they also contribute to significant environmental degradation. Despite their significance, global studies often fail to account for the complex biophysical characteristics of crop systems at fine spatial and temporal scales. This project aims to bridge that gap by leveraging cutting-edge machine learning and multidisciplinary approaches.
 
 ## Project Overview
-{{ Description }}
+This project aims to map the biophysical characteristics of global crop production systems using a diverse set of global datasets and advanced analytical techniques.
 
-* problem statement: Understanding the system is important to make it more sustainable, especially for a complex system such as crops
-* Keywords: System Thinking, Sustainability Intensification, Multidisciplinary
-* challenge statement: No research has tried to create global characteristics using global dataset through machine learning before, mainly because of the availability of the datasets and the computation power.
-* solution statement: The characteristic of the biophysical system of the crop production will be mapped
-* objective: Using Two-stage self-organising map with the multiple global datasets I will create the characteristics
-* literature review: Huggins et al. 2025, Jung et al. 2024
-* research questions: What are the characteristics of the crop production across the world?
+- **Problem statement:** Understanding the crop production system is important for making it more sustainable, especially given its complexity.
+- **Keywords:** System Thinking, Sustainability Intensification, Multidisciplinary
+- **Challenge statement:** No research has previously attempted to create global crop system characteristics using global datasets and machine learning, primarily due to limitations in data availability and computational resources.
+- **Solution statement:** The characteristics of crop production biophysical systems will be mapped globally.
+- **Objective:** Utilize a two-stage self-organising map with multiple global datasets to characterize global crop production systems.
+- **Literature review:** Huggins et al. 2025, Jung et al. 2024
+- **Research questions:** What are the biophysical characteristics of crop production across the world?
 
+## Getting Started
+
+1. Clone this repository.
+2. Install the required R packages as specified in each script or README file.
+3. Read the README files in `data_input` and `SOM_analysis`.
+4. Run `functions.Rmd` before running any analysis scripts.
 
 ## Method Summary
-* Expert's Eliciation
-* Two-stage Self-Organising Maps
-* Correlation analysis
-* Hierarchichal Analysis
+- Expert Elicitation
+- Two-stage Self-Organising Maps
+- Correlation Analysis
+- Hierarchical Analysis
 
 ## Input datasets
 
@@ -41,7 +56,22 @@ Crops play a crucial role in sustaining global food security, yet they also cont
 | Evaporation           | 0.1°               | Monthly             | GLEAMv4 (Miralles et al. 2025)                          |
 | Growing Degree Days   | 0.1°               | Daily               | Calculated from MSWX, Paredes et al. 2025, and Matej et al. 2025 |
 | Nitrogen              | 5 arc-minutes      | Static              | SoilGrids (Poggio et al. 2021)                          |
-| Phosphorus            | 5 arc-minutes      | Static              | Mcdowell et al. 2023                                    |
+| Phosphorus            | 5 arc-minutes      | Static              | McDowell et al. 2023                                    |
 | Precipitation         | 0.1°               | Monthly             | MSWEP V3 (Wang et al. 2025)                             |
 | Soil Moisture         | 0.1°               | Monthly             | GLEAMv4 (Miralles et al. 2025)                          |
 | Soil Organic Carbon   | 5 arc-minutes      | Static              | SoilGrids (Poggio et al. 2021)                          |
+
+## References
+
+- Huggins et al. (2025)
+- Jung et al. (2024)
+- Miralles et al. (2025)
+- Poggio et al. (2021)
+- McDowell et al. (2023)
+- Wang et al. (2025)
+- Paredes et al. (2025)
+- Matej et al. (2025)
+
+---
+
+For citation and licensing, please contact the author for details.
